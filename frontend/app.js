@@ -1,9 +1,9 @@
 const API_BASE = 'http://localhost:8080/api';
-const HERO_IMAGES = ['./media/hero-1.svg', './media/hero-2.svg', './media/hero-3.svg'];
+const HERO_IMAGES = ['./media/avel-chuklanov-IB0VA6VdqBw-unsplash.jpg', './media/brett-jordan-PFr50OBMowU-unsplash.jpg', './media/glenov-brankovic-DWp5nUqTn6E-unsplash.jpg'];
 const GALLERY_IMAGES = [
-  { src: './media/hero-1.svg', title: 'Архитектурный концепт' },
-  { src: './media/hero-2.svg', title: 'Планирование материалов' },
-  { src: './media/hero-3.svg', title: 'Контроль закупок' }
+  { src: './media/scott-blake-wq7oyx_Kx-4-unsplash.jpg', title: 'Архитектурный концепт' },
+  { src: './media/jesse-orrico-L94dWXNKwrY-unsplash.jpg', title: 'Планирование материалов' },
+  { src: './media/pop-zebra-wp81DxKUd1E-unsplash.jpg', title: 'Контроль закупок' }
 ];
 
 const storage = {
