@@ -2,7 +2,7 @@
 
 ## Что внутри
 - `CalculatorBackend-main` — Spring Boot backend.
-- `frontend` — SPA на React (статические файлы + локальные изображения в `frontend/media`).
+- `frontend` — SPA на Vanilla JS (статические файлы + локальные изображения в `frontend/media`).
 
 ## Минимальные требования
 - Java 17+
@@ -10,6 +10,11 @@
 - Один из вариантов для запуска фронта:
   - Python 3, или
   - Node.js 18+ (`npx serve`)
+
+
+## Важно про фронтенд
+- Фронтенд больше не зависит от CDN React/Babel: `frontend/index.html` и `frontend/app.js` полностью локальные.
+- Если раньше был чёрный экран из-за недоступного `unpkg`, теперь эта проблема устранена.
 
 ## Быстрый старт
 
