@@ -2,7 +2,17 @@
 
 Фронтенд сделан на React (через CDN) и интегрирован с backend API.
 
-## Запуск
+## Рекомендуемый запуск всего проекта
+
+Из корня репозитория:
+
+```bash
+docker compose up --build
+```
+
+Frontend: `http://localhost:3000`
+
+## Локальный запуск только фронтенда
 
 ```bash
 cd frontend
