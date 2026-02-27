@@ -1,35 +1,18 @@
-# BuildFlow Frontend (React)
+# BuildFlow Frontend
 
-## Запуск всего проекта через Docker
-
-```bash
-docker compose up --build
-```
-
-Frontend: `http://localhost:3000`
-
-### Если в PowerShell ошибка `docker не распознано`
-
-Поставь Docker Desktop и проверь:
-
-```powershell
-docker --version
-docker compose version
-```
-
-После этого повтори `docker compose up --build`.
-
-## Локальный запуск только фронтенда
-
+## Запуск
 ```bash
 cd frontend
 python3 -m http.server 3000
 ```
+Открой: `http://localhost:3000`
 
-После этого открой `http://localhost:3000`.
+## Что реализовано
+- Полноценная авторизация (login + refresh token + logout).
+- Защита вкладок `Калькулятор / Материалы / Личный кабинет` для неавторизованных пользователей.
+- Личный кабинет: создание клиента, история расчётов, изменение статуса, копирование и удаление расчёта.
+- Галерея и hero-секция используют локальные изображения из `frontend/media`.
+- Плавная смена hero-фона без дёргания всего интерфейса.
 
-> Backend должен быть запущен на `http://localhost:8080`.
-
-## Если backend не поднимается
-
-Если при запуске backend видишь `403 Forbidden` на `repo.maven.apache.org`, это сетевое ограничение для Maven-зависимостей. В этом случае настрой Maven mirror/proxy или используй сеть без блокировок.
+## Backend
+Backend должен быть доступен на `http://localhost:8080`.

@@ -1,0 +1,13 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#14213D"/>
+      <stop offset="1" stop-color="#1F2937"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg2)"/>
+  <path d="M0 620C200 560 300 700 500 650C700 600 760 460 980 460C1200 460 1290 560 1600 490V900H0V620Z" fill="#7B61FF" fill-opacity="0.24"/>
+  <path d="M0 700C230 760 380 640 620 690C860 740 1050 860 1600 760V900H0V700Z" fill="#FFC23A" fill-opacity="0.2"/>
+  <text x="260" y="320" fill="#F9FAFB" font-size="52" font-family="Inter, Arial, sans-serif" font-weight="700">Точный расчёт материалов</text>
+  <text x="260" y="390" fill="#E5E7EB" font-size="30" font-family="Inter, Arial, sans-serif">Каркас • Фундамент • Корзина закупки</text>
+</svg>
