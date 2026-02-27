@@ -1,10 +1,19 @@
 const { useEffect, useMemo, useState } = React;
 
 const API_BASE = 'http://localhost:8080/api';
-const HERO_IMAGES = [
-  'https://images.unsplash.com/photo-1536895058696-a69b1c7ba34f?auto=format&fit=crop&w=1800&q=80',
-  'https://images.unsplash.com/photo-1541976844346-f18aeac57b06?auto=format&fit=crop&w=1800&q=80',
-  'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1800&q=80'
+const HERO_IMAGES = ['./media/hero-1.svg', './media/hero-2.svg', './media/hero-3.svg'];
+
+const KPI = [
+  { label: 'Средняя скорость расчёта', value: 'до 35 сек' },
+  { label: 'Поставщиков в каталоге', value: '120+' },
+  { label: 'Экономия бюджета', value: 'до 18%' },
+  { label: 'Точность спецификации', value: '95%' }
+];
+
+const WORKFLOW = [
+  { title: 'Загрузить клиента', text: 'Подтягиваем базу клиентов из backend и фиксируем объект строительства.' },
+  { title: 'Рассчитать конструктив', text: 'Формируем каркас и фундамент, получаем укрупнённую смету за минуты.' },
+  { title: 'Сверить материалы', text: 'Сравниваем цены и переносим нужные позиции в корзину закупки.' }
 ];
 
 const authHeaders = () => {
@@ -46,6 +55,7 @@ function App() {
   const [selectedClientId, setSelectedClientId] = useState('1');
   const [address, setAddress] = useState('г. Москва, ул. Строителей, 9');
   const [calcId, setCalcId] = useState('');
+  const [materialFilter, setMaterialFilter] = useState('');
   const [foundation, setFoundation] = useState({
     externalPerimeter: 48,
     innerWallLength: 36,
@@ -54,7 +64,7 @@ function App() {
   });
   const [frameFloor, setFrameFloor] = useState(defaultFloor);
   const [floorCount, setFloorCount] = useState(1);
-  const [resultMessage, setResultMessage] = useState('');
+  const [resultMessage, setResultMessage] = useState('Добро пожаловать! Начни с авторизации или перейди в калькулятор.');
   const [cabinetCalcs, setCabinetCalcs] = useState([]);
   const [cart, setCart] = useState(JSON.parse(localStorage.getItem('cart') || '[]'));
 
@@ -68,6 +78,12 @@ function App() {
   }, [cart]);
 
   const totalCart = useMemo(() => cart.reduce((sum, item) => sum + Number(item.currentPrice || 0), 0), [cart]);
+
+  const filteredMaterials = useMemo(() => {
+    const query = materialFilter.trim().toLowerCase();
+    if (!query) return materials;
+    return materials.filter((m) => `${m.name} ${m.unit}`.toLowerCase().includes(query));
+  }, [materials, materialFilter]);
 
   const login = async (e) => {
     e.preventDefault();
@@ -84,7 +100,7 @@ function App() {
       localStorage.setItem('login', data.login);
       setAuthInfo(data.login);
       setResultMessage('⚡ Вход успешный. Токен сохранён в localStorage.');
-    } catch (err) {
+    } catch {
       setResultMessage('Не удалось войти. Проверь backend и тестового пользователя.');
     }
   };
@@ -95,6 +111,7 @@ function App() {
       const response = await fetch(`${API_BASE}/materials`, { headers: { ...authHeaders() } });
       if (!response.ok) throw new Error('Материалы не загружены');
       setMaterials(await response.json());
+      setResultMessage('Справочник материалов обновлён.');
     } catch {
       setResultMessage('Материалы не загрузились. Возможно backend не запущен.');
     } finally {
@@ -109,6 +126,7 @@ function App() {
       const data = await response.json();
       setClients(data);
       if (data[0]) setSelectedClientId(String(data[0].id));
+      setResultMessage(`Загружено клиентов: ${data.length}.`);
     } catch {
       setResultMessage('Не удалось загрузить клиентов.');
     }
@@ -167,6 +185,7 @@ function App() {
       const response = await fetch(`${API_BASE}/calculations/client/${selectedClientId}`, { headers: { ...authHeaders() } });
       if (!response.ok) throw new Error();
       setCabinetCalcs(await response.json());
+      setResultMessage('История расчётов обновлена.');
     } catch {
       setResultMessage('ЛК не загрузился. Проверь доступ.');
     }
@@ -174,6 +193,7 @@ function App() {
 
   const addToCart = (material) => {
     setCart((prev) => [...prev, material]);
+    setResultMessage(`Добавили в корзину: ${material.name}.`);
   };
 
   return (
@@ -195,17 +215,28 @@ function App() {
 
       <main>
         {tab === 'home' && (
-          <section className="hero" style={{ backgroundImage: `linear-gradient(120deg, rgba(13,14,18,.85), rgba(13,14,18,.3)), url(${HERO_IMAGES[heroIndex]})` }}>
-            <div className="hero-content fade-up">
-              <p className="pill">Gen-Z интерфейс + рабочая бизнес-логика</p>
-              <h1>Калькулятор стройматериалов с личным кабинетом и умной корзиной</h1>
-              <p>Считаем каркас и фундамент, сравниваем цены и держим историю расчётов клиента в одном месте.</p>
-              <div className="hero-actions">
-                <button onClick={() => setTab('calculator')}>Запустить расчёт</button>
-                <button className="ghost" onClick={() => setTab('materials')}>Сравнить цены</button>
+          <>
+            <section className="hero" style={{ backgroundImage: `linear-gradient(120deg, rgba(13,14,18,.86), rgba(13,14,18,.36)), url(${HERO_IMAGES[heroIndex]})` }}>
+              <div className="hero-content fade-up">
+                <p className="pill">Платформа управления стройкой</p>
+                <h1>Калькулятор стройматериалов с продуманным UX и CRM-подходом</h1>
+                <p>Считаем каркас и фундамент, сравниваем цены поставщиков и держим историю расчётов клиента в одном рабочем пространстве.</p>
+                <div className="hero-actions">
+                  <button onClick={() => setTab('calculator')}>Запустить расчёт</button>
+                  <button className="ghost" onClick={() => setTab('materials')}>Сравнить цены</button>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+
+            <section className="kpi-grid">
+              {KPI.map((metric) => (
+                <article key={metric.label} className="kpi-card">
+                  <p>{metric.label}</p>
+                  <strong>{metric.value}</strong>
+                </article>
+              ))}
+            </section>
+          </>
         )}
 
         <section className="content-grid">
@@ -220,12 +251,11 @@ function App() {
           </article>
 
           <article className="card warehouse-card">
-            <h3>API складов / маркетплейсов</h3>
-            <p>Открытых бесплатных API именно по стройматериалам почти нет. Реалистичный стек:</p>
+            <h3>Наполнение платформы</h3>
             <ul>
-              <li>2GIS Places API (free tier) — ближайшие строймагазины.</li>
-              <li>OpenStreetMap Overpass API — геоданные складов и баз.</li>
-              <li>Свой агрегатор цен из CSV/XML прайсов поставщиков.</li>
+              {WORKFLOW.map((step) => (
+                <li key={step.title}><strong>{step.title}:</strong> {step.text}</li>
+              ))}
             </ul>
           </article>
         </section>
@@ -248,15 +278,15 @@ function App() {
             <article className="card">
               <h3>2) Каркас</h3>
               <div className="row"><label>Этажей</label><input type="number" min="1" max="5" value={floorCount} onChange={(e) => setFloorCount(e.target.value)} /></div>
-              <div className="row"><label>Высота</label><input type="number" value={frameFloor.floorHeight} onChange={(e)=>setFrameFloor({...frameFloor,floorHeight:Number(e.target.value)})} /></div>
-              <div className="row"><label>Периметр</label><input type="number" value={frameFloor.perimeter} onChange={(e)=>setFrameFloor({...frameFloor,perimeter:Number(e.target.value)})} /></div>
+              <div className="row"><label>Высота</label><input type="number" value={frameFloor.floorHeight} onChange={(e) => setFrameFloor({ ...frameFloor, floorHeight: Number(e.target.value) })} /></div>
+              <div className="row"><label>Периметр</label><input type="number" value={frameFloor.perimeter} onChange={(e) => setFrameFloor({ ...frameFloor, perimeter: Number(e.target.value) })} /></div>
               <button onClick={postFrame}>Рассчитать каркас</button>
             </article>
 
             <article className="card">
               <h3>3) Фундамент</h3>
-              <div className="row"><label>Периметр</label><input type="number" value={foundation.externalPerimeter} onChange={(e)=>setFoundation({...foundation,externalPerimeter:e.target.value})} /></div>
-              <div className="row"><label>Внутр. стены</label><input type="number" value={foundation.innerWallLength} onChange={(e)=>setFoundation({...foundation,innerWallLength:e.target.value})} /></div>
+              <div className="row"><label>Периметр</label><input type="number" value={foundation.externalPerimeter} onChange={(e) => setFoundation({ ...foundation, externalPerimeter: e.target.value })} /></div>
+              <div className="row"><label>Внутр. стены</label><input type="number" value={foundation.innerWallLength} onChange={(e) => setFoundation({ ...foundation, innerWallLength: e.target.value })} /></div>
               <button onClick={postFoundation}>Рассчитать фундамент</button>
             </article>
           </section>
@@ -266,9 +296,12 @@ function App() {
           <section className="content-grid wide">
             <article className="card">
               <h3>База материалов</h3>
-              <button onClick={loadMaterials}>{loadingMaterials ? 'Загрузка...' : 'Подтянуть с backend'}</button>
+              <div className="row">
+                <button onClick={loadMaterials}>{loadingMaterials ? 'Загрузка...' : 'Подтянуть с backend'}</button>
+                <input value={materialFilter} onChange={(e) => setMaterialFilter(e.target.value)} placeholder="Поиск по названию" />
+              </div>
               <div className="material-list">
-                {materials.map((m) => (
+                {filteredMaterials.map((m) => (
                   <div key={m.id} className="material-item">
                     <div>
                       <strong>{m.name}</strong>
@@ -280,6 +313,7 @@ function App() {
                     </div>
                   </div>
                 ))}
+                {!filteredMaterials.length && <p className="muted-note">По этому запросу ничего не найдено.</p>}
               </div>
             </article>
           </section>
@@ -304,7 +338,7 @@ function App() {
             </article>
 
             <article className="card">
-              <h3>Корзина</h3>
+              <h3>Корзина закупки</h3>
               <p>Позиций: {cart.length}</p>
               <p>Сумма: {totalCart.toFixed(2)} ₽</p>
               <button onClick={() => setCart([])}>Очистить</button>
