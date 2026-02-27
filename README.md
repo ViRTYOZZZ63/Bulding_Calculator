@@ -1,76 +1,66 @@
-# Building Calculator — запуск и диагностика
+# Building Calculator — локальный запуск
 
-## Если у тебя ошибка `docker : Имя "docker" не распознано`
+## Что внутри
+- `CalculatorBackend-main` — Spring Boot backend.
+- `frontend` — SPA на React (через CDN + Babel).
 
-Это означает, что Docker Desktop не установлен (или не добавлен в `PATH`).
+## Требования
+- Java 17+
+- Python 3 (для простого статического сервера фронтенда)
+- PostgreSQL 14+
 
-### Windows: как поставить Docker Desktop
-
-1. Установи Docker Desktop:
-   - через официальный сайт: https://www.docker.com/products/docker-desktop/
-   - или через PowerShell (админ):
-
-```powershell
-winget install -e --id Docker.DockerDesktop
-```
-
-2. Перезагрузи ПК.
-3. Запусти **Docker Desktop** и дождись статуса `Engine running`.
-4. Проверь в новом PowerShell:
-
-```powershell
-docker --version
-docker compose version
-```
-
-5. Потом запускай проект:
-
-```powershell
-docker compose up --build
-```
-
-После запуска:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8080
-- Swagger UI: http://localhost:8080/swagger-ui.html
-
----
-
-## Запуск без Docker (если Docker пока не нужен)
-
-### 1) Поднять PostgreSQL локально
-Нужны параметры:
+## 1) Подготовить PostgreSQL
+Создай БД и пользователя (или используй существующего):
 - DB: `calculator_db`
 - user: `postgres`
 - password: `postgres`
+- host: `localhost`
+- port: `5432`
 
-### 2) Backend
+Пример SQL:
+```sql
+CREATE DATABASE calculator_db;
+```
 
+## 2) Запустить backend
 ```bash
 cd CalculatorBackend-main
 chmod +x mvnw
 ./mvnw spring-boot:run
 ```
 
-> На Windows можно запускать `mvnw.cmd spring-boot:run`.
+Для Windows:
+```powershell
+cd CalculatorBackend-main
+mvnw.cmd spring-boot:run
+```
 
-### 3) Frontend
+После запуска backend доступен:
+- API: http://localhost:8080/api
+- Swagger UI: http://localhost:8080/swagger-ui.html
 
+## 3) Запустить frontend
+В новом терминале:
 ```bash
 cd frontend
 python3 -m http.server 3000
 ```
 
----
+Открыть в браузере: http://localhost:3000
 
-## Остановка Docker-стека
+## 4) Проверка, что всё ок
+- Авторизация во фронтенде: логин `manager`, пароль `password`.
+- Вкладка **Калькулятор**: загрузи клиентов → создай расчёт → рассчитай каркас/фундамент.
+- Вкладка **База материалов**: подтяни материалы и добавь в корзину.
 
-```bash
-docker compose down
-```
+## Частые проблемы
+1. **Backend не стартует из-за БД**
+   - Проверь, что PostgreSQL запущен.
+   - Проверь логин/пароль/имя БД.
 
-С очисткой volume БД:
+2. **Frontend не получает данные**
+   - Убедись, что backend запущен на `http://localhost:8080`.
+   - Проверь CORS и сообщения об ошибках в DevTools.
 
-```bash
-docker compose down -v
-```
+3. **Maven не качает зависимости**
+   - Проверь сеть / прокси / mirror для Maven.
