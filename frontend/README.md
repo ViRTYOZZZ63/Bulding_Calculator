@@ -1,35 +1,33 @@
-# BuildFlow Frontend (React)
+# BuildFlow Frontend (Vanilla JS, без CDN-зависимостей)
 
-## Запуск всего проекта через Docker
-
-```bash
-docker compose up --build
-```
-
-Frontend: `http://localhost:3000`
-
-### Если в PowerShell ошибка `docker не распознано`
-
-Поставь Docker Desktop и проверь:
-
-```powershell
-docker --version
-docker compose version
-```
-
-После этого повтори `docker compose up --build`.
-
-## Локальный запуск только фронтенда
-
+## Запуск
+Вариант 1 (Python):
 ```bash
 cd frontend
 python3 -m http.server 3000
 ```
 
-После этого открой `http://localhost:3000`.
+Вариант 2 (Node.js):
+```bash
+cd frontend
+npx serve -l 3000 .
+```
 
-> Backend должен быть запущен на `http://localhost:8080`.
+Открой: `http://localhost:3000`
 
-## Если backend не поднимается
+> Для работы API backend должен быть запущен на `http://localhost:8080`.
 
-Если при запуске backend видишь `403 Forbidden` на `repo.maven.apache.org`, это сетевое ограничение для Maven-зависимостей. В этом случае настрой Maven mirror/proxy или используй сеть без блокировок.
+## Что обновлено
+- Hero использует локальные изображения из `frontend/media` (без внешних CDN-картинок).
+- Добавлены KPI и сценарии работы платформы.
+- Есть поиск по материалам и уведомления о действиях пользователя.
+
+## Если не запускается
+1. Проверь, что порт `3000` не занят.
+2. Проверь консоль браузера (`F12` → Console).
+3. Если запросы к API падают, сначала подними backend и проверь `http://localhost:8080/swagger-ui.html`.
+
+
+## Почему теперь не чёрный экран
+- Убраны внешние зависимости React/Babel из `index.html` (которые могли не загрузиться из-за сети).
+- Интерфейс рендерится локальным `app.js`, поэтому стартует даже при ограниченном интернете.

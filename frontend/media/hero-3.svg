@@ -1,0 +1,14 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#172554"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg3)"/>
+  <rect x="160" y="150" width="1280" height="600" rx="28" fill="#FFFFFF" fill-opacity="0.05"/>
+  <rect x="230" y="220" width="380" height="460" rx="18" fill="#7B61FF" fill-opacity="0.24"/>
+  <rect x="650" y="220" width="380" height="460" rx="18" fill="#FFFFFF" fill-opacity="0.08"/>
+  <rect x="1070" y="220" width="300" height="460" rx="18" fill="#FFC23A" fill-opacity="0.22"/>
+  <text x="250" y="780" fill="#F9FAFB" font-size="42" font-family="Inter, Arial, sans-serif" font-weight="700">Управляй расчётами в одном месте</text>
+</svg>

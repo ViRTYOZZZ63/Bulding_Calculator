@@ -1,15 +1,35 @@
-const { useEffect, useMemo, useState } = React;
-
 const API_BASE = 'http://localhost:8080/api';
-const HERO_IMAGES = [
-  'https://images.unsplash.com/photo-1536895058696-a69b1c7ba34f?auto=format&fit=crop&w=1800&q=80',
-  'https://images.unsplash.com/photo-1541976844346-f18aeac57b06?auto=format&fit=crop&w=1800&q=80',
-  'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1800&q=80'
+const HERO_IMAGES = ['./media/hero-1.svg', './media/hero-2.svg', './media/hero-3.svg'];
+
+const KPI = [
+  { label: 'Средняя скорость расчёта', value: 'до 35 сек' },
+  { label: 'Поставщиков в каталоге', value: '120+' },
+  { label: 'Экономия бюджета', value: 'до 18%' },
+  { label: 'Точность спецификации', value: '95%' }
 ];
 
-const authHeaders = () => {
-  const token = localStorage.getItem('accessToken');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+const WORKFLOW = [
+  { title: 'Загрузить клиента', text: 'Подтягиваем базу клиентов из backend и фиксируем объект строительства.' },
+  { title: 'Рассчитать конструктив', text: 'Формируем каркас и фундамент, получаем укрупнённую смету за минуты.' },
+  { title: 'Сверить материалы', text: 'Сравниваем цены и переносим нужные позиции в корзину закупки.' }
+];
+
+const storage = {
+  get(key, fallback) {
+    try {
+      const value = localStorage.getItem(key);
+      return value === null ? fallback : value;
+    } catch {
+      return fallback;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      // ignore storage errors (private mode / disabled storage)
+    }
+  }
 };
 
 const defaultFloor = {
@@ -34,288 +54,350 @@ const defaultFloor = {
   internalDoors: [{ width: 0.9, height: 2.1, count: 6 }]
 };
 
-function App() {
-  const [tab, setTab] = useState('home');
-  const [heroIndex, setHeroIndex] = useState(0);
-  const [email, setEmail] = useState('manager');
-  const [password, setPassword] = useState('password');
-  const [authInfo, setAuthInfo] = useState(localStorage.getItem('login') || 'guest');
-  const [materials, setMaterials] = useState([]);
-  const [loadingMaterials, setLoadingMaterials] = useState(false);
-  const [clients, setClients] = useState([]);
-  const [selectedClientId, setSelectedClientId] = useState('1');
-  const [address, setAddress] = useState('г. Москва, ул. Строителей, 9');
-  const [calcId, setCalcId] = useState('');
-  const [foundation, setFoundation] = useState({
+const state = {
+  tab: 'home',
+  heroIndex: 0,
+  email: 'manager',
+  password: 'password',
+  authInfo: storage.get('login', 'guest') || 'guest',
+  materials: [],
+  loadingMaterials: false,
+  clients: [],
+  selectedClientId: '1',
+  address: 'г. Москва, ул. Строителей, 9',
+  calcId: '',
+  materialFilter: '',
+  foundation: {
     externalPerimeter: 48,
     innerWallLength: 36,
     pileType: 'Бетонные сваи 200*200*3000',
     concreteGrade: 'М300 (В22.5)'
-  });
-  const [frameFloor, setFrameFloor] = useState(defaultFloor);
-  const [floorCount, setFloorCount] = useState(1);
-  const [resultMessage, setResultMessage] = useState('');
-  const [cabinetCalcs, setCabinetCalcs] = useState([]);
-  const [cart, setCart] = useState(JSON.parse(localStorage.getItem('cart') || '[]'));
+  },
+  frameFloor: { ...defaultFloor },
+  floorCount: 1,
+  resultMessage: 'Добро пожаловать! Начни с авторизации или перейди в калькулятор.',
+  cabinetCalcs: [],
+  cart: JSON.parse(storage.get('cart', '[]'))
+};
 
-  useEffect(() => {
-    const timer = setInterval(() => setHeroIndex((prev) => (prev + 1) % HERO_IMAGES.length), 5500);
-    return () => clearInterval(timer);
-  }, []);
+const authHeaders = () => {
+  const token = storage.get('accessToken', '');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+const escapeHtml = (str = '') => String(str)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
 
-  const totalCart = useMemo(() => cart.reduce((sum, item) => sum + Number(item.currentPrice || 0), 0), [cart]);
+const totalCart = () => state.cart.reduce((sum, item) => sum + Number(item.currentPrice || 0), 0);
+const filteredMaterials = () => {
+  const query = state.materialFilter.trim().toLowerCase();
+  if (!query) return state.materials;
+  return state.materials.filter((m) => `${m.name} ${m.unit}`.toLowerCase().includes(query));
+};
 
-  const login = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login: email, password })
-      });
-      if (!response.ok) throw new Error('Логин не прошёл');
-      const data = await response.json();
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('login', data.login);
-      setAuthInfo(data.login);
-      setResultMessage('⚡ Вход успешный. Токен сохранён в localStorage.');
-    } catch (err) {
-      setResultMessage('Не удалось войти. Проверь backend и тестового пользователя.');
-    }
-  };
+function render() {
+  const root = document.getElementById('root');
+  root.innerHTML = `
+    <header class="header glass">
+      <div class="brand">BuildFlow</div>
+      <nav>
+        ${[['home','Главная'],['calculator','Калькулятор'],['materials','База материалов'],['cabinet','Личный кабинет']].map(([v,t]) => `<button class="tab-btn ${state.tab===v?'active':''}" data-tab="${v}">${t}</button>`).join('')}
+      </nav>
+      <div class="auth-chip">@${escapeHtml(state.authInfo)}</div>
+    </header>
 
-  const loadMaterials = async () => {
-    setLoadingMaterials(true);
-    try {
-      const response = await fetch(`${API_BASE}/materials`, { headers: { ...authHeaders() } });
-      if (!response.ok) throw new Error('Материалы не загружены');
-      setMaterials(await response.json());
-    } catch {
-      setResultMessage('Материалы не загрузились. Возможно backend не запущен.');
-    } finally {
-      setLoadingMaterials(false);
-    }
-  };
-
-  const loadClients = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/clients`, { headers: { ...authHeaders() } });
-      if (!response.ok) throw new Error('Клиенты не загружены');
-      const data = await response.json();
-      setClients(data);
-      if (data[0]) setSelectedClientId(String(data[0].id));
-    } catch {
-      setResultMessage('Не удалось загрузить клиентов.');
-    }
-  };
-
-  const createCalculation = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/calculations/client/${selectedClientId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ constructionAddress: address })
-      });
-      if (!response.ok) throw new Error();
-      const data = await response.json();
-      setCalcId(data.id);
-      setResultMessage(`Создали расчёт #${data.id}. Теперь можно добавить каркас/фундамент.`);
-    } catch {
-      setResultMessage('Ошибка создания расчёта.');
-    }
-  };
-
-  const postFrame = async () => {
-    const floorParamsList = Array.from({ length: Number(floorCount) }, () => frameFloor);
-    const payload = { floors: Number(floorCount), floorParamsList };
-    try {
-      const response = await fetch(`${API_BASE}/calculations/${calcId}/frame`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify(payload)
-      });
-      if (!response.ok) throw new Error();
-      const data = await response.json();
-      setResultMessage(`Каркас рассчитан. Сумма: ${data.totalCost} ₽`);
-    } catch {
-      setResultMessage('Ошибка при расчёте каркаса. Проверь данные/авторизацию.');
-    }
-  };
-
-  const postFoundation = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/calculations/${calcId}/foundation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ ...foundation, externalPerimeter: Number(foundation.externalPerimeter), innerWallLength: Number(foundation.innerWallLength) })
-      });
-      if (!response.ok) throw new Error();
-      const data = await response.json();
-      setResultMessage(`Фундамент рассчитан. Сумма: ${data.totalCost} ₽`);
-    } catch {
-      setResultMessage('Ошибка при расчёте фундамента.');
-    }
-  };
-
-  const loadCabinet = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/calculations/client/${selectedClientId}`, { headers: { ...authHeaders() } });
-      if (!response.ok) throw new Error();
-      setCabinetCalcs(await response.json());
-    } catch {
-      setResultMessage('ЛК не загрузился. Проверь доступ.');
-    }
-  };
-
-  const addToCart = (material) => {
-    setCart((prev) => [...prev, material]);
-  };
-
-  return (
-    <>
-      <header className="header glass">
-        <div className="brand">BuildFlow</div>
-        <nav>
-          {[
-            ['home', 'Главная'],
-            ['calculator', 'Калькулятор'],
-            ['materials', 'База материалов'],
-            ['cabinet', 'Личный кабинет']
-          ].map(([value, title]) => (
-            <button key={value} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}>{title}</button>
-          ))}
-        </nav>
-        <div className="auth-chip">@{authInfo}</div>
-      </header>
-
-      <main>
-        {tab === 'home' && (
-          <section className="hero" style={{ backgroundImage: `linear-gradient(120deg, rgba(13,14,18,.85), rgba(13,14,18,.3)), url(${HERO_IMAGES[heroIndex]})` }}>
-            <div className="hero-content fade-up">
-              <p className="pill">Gen-Z интерфейс + рабочая бизнес-логика</p>
-              <h1>Калькулятор стройматериалов с личным кабинетом и умной корзиной</h1>
-              <p>Считаем каркас и фундамент, сравниваем цены и держим историю расчётов клиента в одном месте.</p>
-              <div className="hero-actions">
-                <button onClick={() => setTab('calculator')}>Запустить расчёт</button>
-                <button className="ghost" onClick={() => setTab('materials')}>Сравнить цены</button>
-              </div>
+    <main>
+      ${state.tab === 'home' ? `
+        <section class="hero" style="background-image: linear-gradient(120deg, rgba(13,14,18,.86), rgba(13,14,18,.36)), url(${HERO_IMAGES[state.heroIndex]})">
+          <div class="hero-content fade-up">
+            <p class="pill">Платформа управления стройкой</p>
+            <h1>Калькулятор стройматериалов с продуманным UX и CRM-подходом</h1>
+            <p>Считаем каркас и фундамент, сравниваем цены поставщиков и держим историю расчётов клиента в одном рабочем пространстве.</p>
+            <div class="hero-actions">
+              <button data-tab-target="calculator">Запустить расчёт</button>
+              <button class="ghost" data-tab-target="materials">Сравнить цены</button>
             </div>
-          </section>
-        )}
+          </div>
+        </section>
+        <section class="kpi-grid">
+          ${KPI.map((m) => `<article class="kpi-card"><p>${m.label}</p><strong>${m.value}</strong></article>`).join('')}
+        </section>
+      ` : ''}
 
-        <section className="content-grid">
-          <article className="card gradient-border">
-            <h3>Вход в backend</h3>
-            <form className="login-form" onSubmit={login}>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="login" />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="password" />
-              <button type="submit">Войти</button>
-            </form>
-            <small>Подключено к /api/auth/login</small>
+      <section class="content-grid">
+        <article class="card gradient-border">
+          <h3>Вход в backend</h3>
+          <form class="login-form" id="loginForm">
+            <input id="emailInput" value="${escapeHtml(state.email)}" placeholder="login" />
+            <input id="passwordInput" type="password" value="${escapeHtml(state.password)}" placeholder="password" />
+            <button type="submit">Войти</button>
+          </form>
+          <small>Подключено к /api/auth/login</small>
+        </article>
+
+        <article class="card warehouse-card">
+          <h3>Наполнение платформы</h3>
+          <ul>${WORKFLOW.map((w) => `<li><strong>${w.title}:</strong> ${w.text}</li>`).join('')}</ul>
+        </article>
+      </section>
+
+      ${state.tab === 'calculator' ? `
+        <section class="content-grid wide">
+          <article class="card">
+            <h3>1) Клиент + расчёт</h3>
+            <div class="row">
+              <button id="loadClientsBtn">Загрузить клиентов</button>
+              <select id="clientsSelect">${state.clients.map((c) => `<option value="${c.id}" ${String(c.id)===state.selectedClientId?'selected':''}>${escapeHtml(`${c.lastName} ${c.firstName}`)}</option>`).join('')}</select>
+            </div>
+            <input id="addressInput" value="${escapeHtml(state.address)}" placeholder="Адрес строительства" />
+            <button id="createCalcBtn">Создать расчёт</button>
+            <input id="calcIdInput" value="${escapeHtml(String(state.calcId))}" placeholder="ID расчёта" />
           </article>
-
-          <article className="card warehouse-card">
-            <h3>API складов / маркетплейсов</h3>
-            <p>Открытых бесплатных API именно по стройматериалам почти нет. Реалистичный стек:</p>
-            <ul>
-              <li>2GIS Places API (free tier) — ближайшие строймагазины.</li>
-              <li>OpenStreetMap Overpass API — геоданные складов и баз.</li>
-              <li>Свой агрегатор цен из CSV/XML прайсов поставщиков.</li>
-            </ul>
+          <article class="card">
+            <h3>2) Каркас</h3>
+            <div class="row"><label>Этажей</label><input id="floorCountInput" type="number" min="1" max="5" value="${state.floorCount}" /></div>
+            <div class="row"><label>Высота</label><input id="floorHeightInput" type="number" value="${state.frameFloor.floorHeight}" /></div>
+            <div class="row"><label>Периметр</label><input id="perimeterInput" type="number" value="${state.frameFloor.perimeter}" /></div>
+            <button id="postFrameBtn">Рассчитать каркас</button>
+          </article>
+          <article class="card">
+            <h3>3) Фундамент</h3>
+            <div class="row"><label>Периметр</label><input id="foundationPerimeterInput" type="number" value="${state.foundation.externalPerimeter}" /></div>
+            <div class="row"><label>Внутр. стены</label><input id="foundationInnerInput" type="number" value="${state.foundation.innerWallLength}" /></div>
+            <button id="postFoundationBtn">Рассчитать фундамент</button>
           </article>
         </section>
+      ` : ''}
 
-        {tab === 'calculator' && (
-          <section className="content-grid wide">
-            <article className="card">
-              <h3>1) Клиент + расчёт</h3>
-              <div className="row">
-                <button onClick={loadClients}>Загрузить клиентов</button>
-                <select value={selectedClientId} onChange={(e) => setSelectedClientId(e.target.value)}>
-                  {clients.map((c) => <option key={c.id} value={c.id}>{c.lastName} {c.firstName}</option>)}
-                </select>
-              </div>
-              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Адрес строительства" />
-              <button onClick={createCalculation}>Создать расчёт</button>
-              <input value={calcId} onChange={(e) => setCalcId(e.target.value)} placeholder="ID расчёта" />
-            </article>
+      ${state.tab === 'materials' ? `
+        <section class="content-grid wide">
+          <article class="card">
+            <h3>База материалов</h3>
+            <div class="row">
+              <button id="loadMaterialsBtn">${state.loadingMaterials ? 'Загрузка...' : 'Подтянуть с backend'}</button>
+              <input id="materialFilterInput" value="${escapeHtml(state.materialFilter)}" placeholder="Поиск по названию" />
+            </div>
+            <div class="material-list">
+              ${filteredMaterials().map((m) => `
+                <div class="material-item">
+                  <div><strong>${escapeHtml(m.name)}</strong><p>${escapeHtml(m.unit || '')}</p></div>
+                  <div class="price-zone"><span>${m.currentPrice} ₽</span><button class="add-cart-btn" data-material-id="${m.id}">В корзину</button></div>
+                </div>`).join('')}
+              ${filteredMaterials().length ? '' : '<p class="muted-note">По этому запросу ничего не найдено.</p>'}
+            </div>
+          </article>
+        </section>
+      ` : ''}
 
-            <article className="card">
-              <h3>2) Каркас</h3>
-              <div className="row"><label>Этажей</label><input type="number" min="1" max="5" value={floorCount} onChange={(e) => setFloorCount(e.target.value)} /></div>
-              <div className="row"><label>Высота</label><input type="number" value={frameFloor.floorHeight} onChange={(e)=>setFrameFloor({...frameFloor,floorHeight:Number(e.target.value)})} /></div>
-              <div className="row"><label>Периметр</label><input type="number" value={frameFloor.perimeter} onChange={(e)=>setFrameFloor({...frameFloor,perimeter:Number(e.target.value)})} /></div>
-              <button onClick={postFrame}>Рассчитать каркас</button>
-            </article>
+      ${state.tab === 'cabinet' ? `
+        <section class="content-grid wide">
+          <article class="card">
+            <h3>Личный кабинет</h3>
+            <button id="loadCabinetBtn">Обновить историю расчётов</button>
+            <div class="material-list">
+              ${state.cabinetCalcs.map((calc) => `<div class="material-item"><div><strong>Расчёт #${calc.id}</strong><p>${escapeHtml(calc.constructionAddress || '')}</p></div><span class="status">${escapeHtml(calc.status || '')}</span></div>`).join('')}
+            </div>
+          </article>
+          <article class="card">
+            <h3>Корзина закупки</h3>
+            <p>Позиций: ${state.cart.length}</p>
+            <p>Сумма: ${totalCart().toFixed(2)} ₽</p>
+            <button id="clearCartBtn">Очистить</button>
+          </article>
+        </section>
+      ` : ''}
 
-            <article className="card">
-              <h3>3) Фундамент</h3>
-              <div className="row"><label>Периметр</label><input type="number" value={foundation.externalPerimeter} onChange={(e)=>setFoundation({...foundation,externalPerimeter:e.target.value})} /></div>
-              <div className="row"><label>Внутр. стены</label><input type="number" value={foundation.innerWallLength} onChange={(e)=>setFoundation({...foundation,innerWallLength:e.target.value})} /></div>
-              <button onClick={postFoundation}>Рассчитать фундамент</button>
-            </article>
-          </section>
-        )}
+      <p class="result-msg">${escapeHtml(state.resultMessage)}</p>
+    </main>
+  `;
 
-        {tab === 'materials' && (
-          <section className="content-grid wide">
-            <article className="card">
-              <h3>База материалов</h3>
-              <button onClick={loadMaterials}>{loadingMaterials ? 'Загрузка...' : 'Подтянуть с backend'}</button>
-              <div className="material-list">
-                {materials.map((m) => (
-                  <div key={m.id} className="material-item">
-                    <div>
-                      <strong>{m.name}</strong>
-                      <p>{m.unit}</p>
-                    </div>
-                    <div className="price-zone">
-                      <span>{m.currentPrice} ₽</span>
-                      <button onClick={() => addToCart(m)}>В корзину</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </section>
-        )}
-
-        {tab === 'cabinet' && (
-          <section className="content-grid wide">
-            <article className="card">
-              <h3>Личный кабинет</h3>
-              <button onClick={loadCabinet}>Обновить историю расчётов</button>
-              <div className="material-list">
-                {cabinetCalcs.map((calc) => (
-                  <div key={calc.id} className="material-item">
-                    <div>
-                      <strong>Расчёт #{calc.id}</strong>
-                      <p>{calc.constructionAddress}</p>
-                    </div>
-                    <span className="status">{calc.status}</span>
-                  </div>
-                ))}
-              </div>
-            </article>
-
-            <article className="card">
-              <h3>Корзина</h3>
-              <p>Позиций: {cart.length}</p>
-              <p>Сумма: {totalCart.toFixed(2)} ₽</p>
-              <button onClick={() => setCart([])}>Очистить</button>
-            </article>
-          </section>
-        )}
-
-        <p className="result-msg">{resultMessage}</p>
-      </main>
-    </>
-  );
+  bindHandlers();
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+function safeRender() {
+  try {
+    render();
+  } catch (error) {
+    const root = document.getElementById('root');
+    if (root) {
+      root.innerHTML = '<main style="padding:24px;color:#fff"><h2>Ошибка рендера интерфейса</h2><p>Открой DevTools Console и пришли ошибку разработчику.</p></main>';
+    }
+    console.error(error);
+  }
+}
+
+function setMessage(msg) { state.resultMessage = msg; safeRender(); }
+function switchTab(tab) { state.tab = tab; safeRender(); }
+
+async function login(e) {
+  e.preventDefault();
+  try {
+    const response = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ login: state.email, password: state.password })
+    });
+    if (!response.ok) throw new Error();
+    const data = await response.json();
+    storage.set('accessToken', data.accessToken);
+    storage.set('refreshToken', data.refreshToken);
+    storage.set('login', data.login);
+    state.authInfo = data.login;
+    setMessage('⚡ Вход успешный. Токен сохранён в localStorage.');
+  } catch {
+    setMessage('Не удалось войти. Проверь backend и тестового пользователя.');
+  }
+}
+
+async function loadMaterials() {
+  state.loadingMaterials = true;
+  safeRender();
+  try {
+    const response = await fetch(`${API_BASE}/materials`, { headers: { ...authHeaders() } });
+    if (!response.ok) throw new Error();
+    state.materials = await response.json();
+    setMessage('Справочник материалов обновлён.');
+  } catch {
+    setMessage('Материалы не загрузились. Возможно backend не запущен.');
+  } finally {
+    state.loadingMaterials = false;
+    safeRender();
+  }
+}
+
+async function loadClients() {
+  try {
+    const response = await fetch(`${API_BASE}/clients`, { headers: { ...authHeaders() } });
+    if (!response.ok) throw new Error();
+    const data = await response.json();
+    state.clients = data;
+    if (data[0]) state.selectedClientId = String(data[0].id);
+    setMessage(`Загружено клиентов: ${data.length}.`);
+  } catch {
+    setMessage('Не удалось загрузить клиентов.');
+  }
+}
+
+async function createCalculation() {
+  try {
+    const response = await fetch(`${API_BASE}/calculations/client/${state.selectedClientId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ constructionAddress: state.address })
+    });
+    if (!response.ok) throw new Error();
+    const data = await response.json();
+    state.calcId = data.id;
+    setMessage(`Создали расчёт #${data.id}. Теперь можно добавить каркас/фундамент.`);
+  } catch {
+    setMessage('Ошибка создания расчёта.');
+  }
+}
+
+async function postFrame() {
+  const floorParamsList = Array.from({ length: Number(state.floorCount) }, () => state.frameFloor);
+  const payload = { floors: Number(state.floorCount), floorParamsList };
+  try {
+    const response = await fetch(`${API_BASE}/calculations/${state.calcId}/frame`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error();
+    const data = await response.json();
+    setMessage(`Каркас рассчитан. Сумма: ${data.totalCost} ₽`);
+  } catch {
+    setMessage('Ошибка при расчёте каркаса. Проверь данные/авторизацию.');
+  }
+}
+
+async function postFoundation() {
+  try {
+    const response = await fetch(`${API_BASE}/calculations/${state.calcId}/foundation`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ ...state.foundation, externalPerimeter: Number(state.foundation.externalPerimeter), innerWallLength: Number(state.foundation.innerWallLength) })
+    });
+    if (!response.ok) throw new Error();
+    const data = await response.json();
+    setMessage(`Фундамент рассчитан. Сумма: ${data.totalCost} ₽`);
+  } catch {
+    setMessage('Ошибка при расчёте фундамента.');
+  }
+}
+
+async function loadCabinet() {
+  try {
+    const response = await fetch(`${API_BASE}/calculations/client/${state.selectedClientId}`, { headers: { ...authHeaders() } });
+    if (!response.ok) throw new Error();
+    state.cabinetCalcs = await response.json();
+    setMessage('История расчётов обновлена.');
+  } catch {
+    setMessage('ЛК не загрузился. Проверь доступ.');
+  }
+}
+
+function bindHandlers() {
+  document.querySelectorAll('.tab-btn').forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+  document.querySelectorAll('[data-tab-target]').forEach((btn) => btn.addEventListener('click', () => switchTab(btn.dataset.tabTarget)));
+
+  const loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', login);
+    document.getElementById('emailInput').addEventListener('input', (e) => { state.email = e.target.value; });
+    document.getElementById('passwordInput').addEventListener('input', (e) => { state.password = e.target.value; });
+  }
+
+  const loadClientsBtn = document.getElementById('loadClientsBtn');
+  if (loadClientsBtn) {
+    loadClientsBtn.addEventListener('click', loadClients);
+    document.getElementById('clientsSelect').addEventListener('change', (e) => { state.selectedClientId = e.target.value; });
+    document.getElementById('addressInput').addEventListener('input', (e) => { state.address = e.target.value; });
+    document.getElementById('createCalcBtn').addEventListener('click', createCalculation);
+    document.getElementById('calcIdInput').addEventListener('input', (e) => { state.calcId = e.target.value; });
+    document.getElementById('floorCountInput').addEventListener('input', (e) => { state.floorCount = e.target.value; });
+    document.getElementById('floorHeightInput').addEventListener('input', (e) => { state.frameFloor.floorHeight = Number(e.target.value); });
+    document.getElementById('perimeterInput').addEventListener('input', (e) => { state.frameFloor.perimeter = Number(e.target.value); });
+    document.getElementById('postFrameBtn').addEventListener('click', postFrame);
+    document.getElementById('foundationPerimeterInput').addEventListener('input', (e) => { state.foundation.externalPerimeter = e.target.value; });
+    document.getElementById('foundationInnerInput').addEventListener('input', (e) => { state.foundation.innerWallLength = e.target.value; });
+    document.getElementById('postFoundationBtn').addEventListener('click', postFoundation);
+  }
+
+  const loadMaterialsBtn = document.getElementById('loadMaterialsBtn');
+  if (loadMaterialsBtn) {
+    loadMaterialsBtn.addEventListener('click', loadMaterials);
+    document.getElementById('materialFilterInput').addEventListener('input', (e) => {
+      state.materialFilter = e.target.value;
+      safeRender();
+    });
+    document.querySelectorAll('.add-cart-btn').forEach((btn) => btn.addEventListener('click', () => {
+      const material = state.materials.find((m) => String(m.id) === btn.dataset.materialId);
+      if (!material) return;
+      state.cart.push(material);
+      storage.set('cart', JSON.stringify(state.cart));
+      setMessage(`Добавили в корзину: ${material.name}.`);
+    }));
+  }
+
+  const loadCabinetBtn = document.getElementById('loadCabinetBtn');
+  if (loadCabinetBtn) {
+    loadCabinetBtn.addEventListener('click', loadCabinet);
+    document.getElementById('clearCartBtn').addEventListener('click', () => {
+      state.cart = [];
+      storage.set('cart', JSON.stringify(state.cart));
+      safeRender();
+    });
+  }
+}
+
+setInterval(() => {
+  state.heroIndex = (state.heroIndex + 1) % HERO_IMAGES.length;
+  if (state.tab === 'home') safeRender();
+}, 5500);
+
+safeRender();
