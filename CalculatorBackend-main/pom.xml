@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<!--
+            ВАЖНО: Spring Boot 4.0.3 не существует.
+            Последняя стабильная версия на момент написания — 3.4.x.
+            Используем 3.4.3.
+        -->
+		<version>3.4.3</version>
+		<relativePath/>
+	</parent>
+
+	<groupId>com.company</groupId>
+	<artifactId>calculator</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>calculator</name>
+	<description>Строительный калькулятор — Backend</description>
+
+	<properties>
+		<java.version>17</java.version>
+		<!-- Версии библиотек вынесены сюда для удобного обновления -->
+		<mapstruct.version>1.5.5.Final</mapstruct.version>
+		<lombok.version>1.18.30</lombok.version>
+		<jjwt.version>0.12.5</jjwt.version>
+		<hypersistence.version>3.7.0</hypersistence.version>
+		<springdoc.version>2.3.0</springdoc.version>
+	</properties>
+
+	<dependencies>
+
+		<!-- ===================================================== -->
+		<!--  SPRING BOOT CORE                                      -->
+		<!-- ===================================================== -->
+
+		<!-- Web (REST API). Было: spring-boot-starter-webmvc — неверное название -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<!-- Spring Data JPA + Hibernate -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+
+		<!-- Spring Security -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
+		<!-- Bean Validation (@NotNull, @NotBlank и т.д.) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<!-- Email-уведомления (п.6.8 ТЗ) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
+		<!-- Планировщик (@Scheduled) — входит в spring-context, явно не нужен,
+             но включаем для ясности -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+		</dependency>
+
+		<!-- ===================================================== -->
+		<!--  БД                                                    -->
+		<!-- ===================================================== -->
+
+		<!-- PostgreSQL JDBC драйвер -->
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Flyway: миграции БД. Ядро + поддержка PostgreSQL -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+
+		<!-- Hypersistence Utils: поддержка JSONB в Hibernate 6 (Spring Boot 3.x)
+             Нужна для хранения inputParams как JSONB в таблице calculation_elements -->
+		<dependency>
+			<groupId>io.hypersistence</groupId>
+			<artifactId>hypersistence-utils-hibernate-63</artifactId>
+			<version>${hypersistence.version}</version>
+		</dependency>
+
+		<!-- ===================================================== -->
+		<!--  БЕЗОПАСНОСТЬ / JWT                                    -->
+		<!-- ===================================================== -->
+
+		<!-- JJWT — генерация и валидация JWT токенов -->
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>${jjwt.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>${jjwt.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>${jjwt.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- ===================================================== -->
+		<!--  ДОКУМЕНТАЦИЯ API (SWAGGER)                            -->
+		<!-- ===================================================== -->
+
+		<!-- springdoc-openapi: автоматический Swagger UI по аннотациям.
+             Интерфейс доступен по /swagger-ui.html -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${springdoc.version}</version>
+		</dependency>
+
+		<!-- ===================================================== -->
+		<!--  УТИЛИТЫ                                               -->
+		<!-- ===================================================== -->
+
+		<!-- Lombok: убирает бойлерплейт (@Data, @Builder, @RequiredArgsConstructor и т.д.) -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>${lombok.version}</version>
+			<optional>true</optional>
+		</dependency>
+
+		<!-- MapStruct: маппинг Entity ↔ DTO без написания руками -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
+		</dependency>
+
+		<!-- ===================================================== -->
+		<!--  ТЕСТЫ                                                 -->
+		<!-- ===================================================== -->
+
+		<!--
+            ВАЖНО: spring-boot-starter-data-jpa-test, spring-boot-starter-flyway-test
+            и т.д. — таких стартеров НЕ СУЩЕСТВУЕТ.
+            Для тестов нужен только один starter-test + security-test.
+        -->
+
+		<!-- Основной тестовый стартер: JUnit 5, Mockito, AssertJ, MockMvc -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Тесты Spring Security (MockMvc + аутентификация) -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- H2 — встроенная in-memory БД для юнит-тестов репозиториев и сервисов.
+             Позволяет не поднимать реальный PostgreSQL при каждом запуске тестов. -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<!-- Исключаем Lombok из финального JAR -->
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+
+			<!-- Обязательно: maven-compiler-plugin для работы Lombok + MapStruct вместе.
+                 Без этой настройки MapStruct не увидит Lombok-генерированные конструкторы. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+					<annotationProcessorPaths>
+						<!-- Lombok должен идти ПЕРВЫМ — иначе MapStruct не найдёт геттеры/сеттеры -->
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
+						<path>
+							<groupId>org.mapstruct</groupId>
+							<artifactId>mapstruct-processor</artifactId>
+							<version>${mapstruct.version}</version>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+
+		</plugins>
+	</build>
+
+</project>
