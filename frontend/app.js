@@ -339,7 +339,6 @@ function render() {
           <div class="hero-content fade-up">
             <p class="pill">BuildFlow Platform</p>
             <h1>Управляйте стройкой, сметой и клиентом в едином кабинете</h1>
-            <p>Красивый интерфейс, локальные медиа, живой расчёт каркаса/фундамента и рабочая авторизация через backend JWT.</p>
           </div>
         </div>
       </section>
