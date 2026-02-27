@@ -6,13 +6,16 @@
   --muted: #a5aec4;
   --accent: #ffc23a;
 }
+
 * { box-sizing: border-box; }
+
 body {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
   background: radial-gradient(circle at 10% 10%, #20294b 0%, transparent 34%), radial-gradient(circle at 80% 0%, #3a2e54 0%, transparent 28%), var(--bg);
   color: var(--txt);
 }
+
 .header {
   position: sticky;
   top: 12px;

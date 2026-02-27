@@ -3,7 +3,7 @@
 ## Запуск
 ```bash
 cd frontend
-python3 -m http.server 3000
+npx serve -l 3000 .
 ```
 Открой: `http://localhost:3000`
 
