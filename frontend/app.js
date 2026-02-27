@@ -1,10 +1,19 @@
 const { useEffect, useMemo, useState } = React;
 
 const API_BASE = 'http://localhost:8080/api';
-const HERO_IMAGES = [
-  'https://images.unsplash.com/photo-1536895058696-a69b1c7ba34f?auto=format&fit=crop&w=1800&q=80',
-  'https://images.unsplash.com/photo-1541976844346-f18aeac57b06?auto=format&fit=crop&w=1800&q=80',
-  'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1800&q=80'
+const HERO_IMAGES = ['./media/hero-1.svg', './media/hero-2.svg', './media/hero-3.svg'];
+
+const KPI = [
+  { label: 'Средняя скорость расчёта', value: 'до 35 сек' },
+  { label: 'Поставщиков в каталоге', value: '120+' },
+  { label: 'Экономия бюджета', value: 'до 18%' },
+  { label: 'Точность спецификации', value: '95%' }
+];
+
+const WORKFLOW = [
+  { title: 'Загрузить клиента', text: 'Подтягиваем базу клиентов из backend и фиксируем объект строительства.' },
+  { title: 'Рассчитать конструктив', text: 'Формируем каркас и фундамент, получаем укрупнённую смету за минуты.' },
+  { title: 'Сверить материалы', text: 'Сравниваем цены и переносим нужные позиции в корзину закупки.' }
 ];
 
 const KPI = [
